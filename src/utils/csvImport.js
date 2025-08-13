@@ -17,10 +17,10 @@ const urlToBase64 = async (url) => {
 };
 
 
-const importCSV = (filePath) => {
+const importCSV = (stream) => {
   return new Promise((resolve, reject) => {
     const rows = [];
-    fs.createReadStream(filePath)
+    stream
       .pipe(csv())
       .on('data', (row) => {
         console.log('Parsed row:', row);
@@ -54,7 +54,6 @@ const importCSV = (filePath) => {
             addedCount++;
           }
         }
-        fs.unlinkSync(filePath);
         resolve({ added: addedCount, skippedCount: skipped.length, skipped });
       })
       .on('error', reject);

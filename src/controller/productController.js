@@ -193,30 +193,17 @@ exports.getHistory = async (req, res) => {
 
 // POST /api/products/import
 exports.importProducts = async (req, res) => {
-  console.log('Received /api/products/import request');
-  const fs = require('fs');
-  const path = require('path');
-  let tmpPath;
+  const { Readable } = require('stream');
   try {
-    console.log('CSV Import req.file:', req.file);
     if (!req.file) {
-      console.log('No file uploaded');
       return res.status(400).json({ message: 'No file uploaded' });
     }
-
-    // Write buffer to a temp file
-    tmpPath = path.join(__dirname, '../../uploads', `${Date.now()}_${req.file.originalname}`);
-    fs.writeFileSync(tmpPath, req.file.buffer);
-
-    const result = await importCSV(tmpPath);
+    const stream = Readable.from(req.file.buffer);
+    const result = await importCSV(stream);
     res.json(result);
   } catch (err) {
     if (!res.headersSent) {
       res.status(500).json({ message: 'Error importing CSV', error: err.message });
-    }
-  } finally {
-    if (tmpPath) {
-      try { fs.unlinkSync(tmpPath); } catch (e) { /* ignore */ }
     }
   }
 };
