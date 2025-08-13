@@ -6,7 +6,7 @@ const exportCSV = require('../utils/csvExport');
 // GET /api/products
 exports.getProducts = async (req, res) => {
   try {
-  const { page = 1, limit = 7, sort = 'name', name } = req.query;
+  const { page = 1, limit = 6, sort = 'name', name } = req.query;
     const query = {};
 
     if (name) query.name = { $regex: name, $options: 'i' };
@@ -58,13 +58,13 @@ exports.addProduct = async (req, res) => {
       return res.status(400).json({ message: 'Product name already exists' });
     }
 
-    // Determine image string
-    let imageString = image; // from JSON body
+    // Accept image as file (convert to base64) or as URL
+    let imageString = image;
     if (req.file) {
-      // Convert uploaded file to base64 string
       const fileData = req.file.buffer.toString('base64');
       imageString = `data:${req.file.mimetype};base64,${fileData}`;
     }
+    // If not a file, allow URL or base64
 
     // Create new product
     const newProduct = await Product.create({
@@ -109,12 +109,16 @@ exports.updateProduct = async (req, res) => {
       });
     }
 
-    // Handle image update
+
+
+    // Accept image as file (convert to base64) or as URL
     let imageString = image ?? product.image;
     if (req.file) {
       const fileData = req.file.buffer.toString('base64');
       imageString = `data:${req.file.mimetype};base64,${fileData}`;
     }
+    // If not a file, allow URL or base64
+    // (no validation here, just store what is provided)
 
     product.name = name ?? product.name;
     product.unit = unit ?? product.unit;
@@ -149,6 +153,34 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
+// GET /api/products/categories - get all unique categories
+exports.getAllCategories = async (req, res) => {
+  try {
+    const categories = await Product.distinct('category');
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching categories', error: err.message });
+  }
+};
+// GET /api/products/category?category=
+exports.getProductsByCategory = async (req, res) => {
+  try {
+    const { category, page = 1, limit = 7, sort = 'name' } = req.query;
+    if (!category) {
+      return res.status(400).json({ message: 'Category query parameter is required' });
+    }
+    const query = { category };
+    const products = await Product.find(query)
+      .sort(sort.split(',').join(' '))
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+    const total = await Product.countDocuments(query);
+    res.json({ total, page: parseInt(page), pages: Math.ceil(total / limit), products });
+  } catch (err) {
+    res.status(500).json({ message: 'Error filtering by category', error: err.message });
+  }
+};
+
 // GET /api/products/:id/history
 exports.getHistory = async (req, res) => {
   try {
@@ -161,6 +193,7 @@ exports.getHistory = async (req, res) => {
 
 // POST /api/products/import
 exports.importProducts = async (req, res) => {
+  console.log('Received /api/products/import request');
   const fs = require('fs');
   const path = require('path');
   let tmpPath;

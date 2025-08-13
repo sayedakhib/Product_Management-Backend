@@ -8,7 +8,9 @@ const {
   deleteProduct,
   importProducts,
   exportProducts,
-  searchProducts
+  searchProducts,
+  getProductsByCategory,
+  getAllCategories
 } = require('../controller/productController');
 
 const router = express.Router();
@@ -17,10 +19,12 @@ const upload = multer({ storage });
 
 
 router.get('/', getProducts);
-router.get('/search', searchProducts);
 router.post('/add', upload.single('image'), addProduct);
 router.put('/:id', upload.single('image'), updateProduct);
 router.delete('/delete/:id', deleteProduct);
+router.get('/search', searchProducts);
+router.get('/category', getProductsByCategory);
+router.get('/categories', getAllCategories);
 router.get('/:id/history', getHistory);
 router.post('/import', upload.single('file'), importProducts);
 router.get('/export', exportProducts);

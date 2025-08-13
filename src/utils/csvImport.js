@@ -23,6 +23,7 @@ const importCSV = (filePath) => {
     fs.createReadStream(filePath)
       .pipe(csv())
       .on('data', (row) => {
+        console.log('Parsed row:', row);
         rows.push(row);
       })
       .on('end', async () => {
@@ -39,6 +40,8 @@ const importCSV = (filePath) => {
               }
             }
             productsToInsert.push({ name, unit, category, brand, stock, status, image });
+          } else {
+            console.log('Skipped row (missing required fields):', row);
           }
         }
         let addedCount = 0;
